@@ -1,4 +1,5 @@
-import { CustomAuthorizerEvent, CustomAuthorizerResult } from 'aws-lambda'
+import { CustomAuthorizerResult } from 'aws-lambda'
+
 import 'source-map-support/register'
 
 import { verify, decode } from 'jsonwebtoken'
@@ -12,11 +13,89 @@ const logger = createLogger('auth')
 // TODO: Provide a URL that can be used to download a certificate that can be used
 // to verify JWT token signature.
 // To get this URL you need to go to an Auth0 page -> Show Advanced Settings -> Endpoints -> JSON Web Key Set
-const jwksUrl = '...'
+const jwksUrl = 'https://darkel.us.auth0.com/.well-known/jwks.json'
 
-export const handler = async (
-  event: CustomAuthorizerEvent
-): Promise<CustomAuthorizerResult> => {
+let jwks = null
+
+async function fetchJwks() {
+  if (jwks) {
+    return
+  }
+
+  const response = await Axios.get(jwksUrl)
+  const data = response.data
+  if (!data || !data.keys) {
+    throw new Error('JWKS not found')
+  }
+
+  jwks = data.keys
+}
+
+// function getJWKS() {
+//   return jwks
+// }
+
+function certToPEM(cert) {
+  let pem = cert.match(/.{1,64}/g).join('\n')
+  pem = `-----BEGIN CERTIFICATE-----\n${cert}\n-----END CERTIFICATE-----\n`
+  return pem
+}
+
+function getJWKSSigningKeys() {
+  return jwks
+    .filter(
+      (key) =>
+        key.use === 'sig' && // JWK property `use` determines the JWK is for signing
+        key.kty === 'RSA' && // We are only supporting RSA (RS256)
+        key.kid && // The `kid` must be present to be useful for later
+        ((key.x5c && key.x5c.length) || (key.n && key.e)) // Has useful public keys
+    )
+    .map((key) => ({
+      kid: key.kid,
+      nbf: key.nbf,
+      publicKey: certToPEM(key.x5c[0])
+    }))
+}
+
+function getJWKSSigningKey(kid) {
+  return getJWKSSigningKeys().find((key) => key.kid === kid)
+}
+
+function getToken(authHeader: string): string {
+  if (!authHeader) throw new Error('No authentication header')
+
+  if (!authHeader.toLowerCase().startsWith('bearer '))
+    throw new Error('Invalid authentication header')
+
+  const split = authHeader.split(' ')
+  const token = split[1]
+
+  return token
+}
+
+async function verifyToken(authHeader: string): Promise<JwtPayload> {
+  await fetchJwks()
+
+  const token = getToken(authHeader)
+
+  // TODO: Implement token verification
+  // You should implement it similarly to how it was implemented for the exercise for the lesson 5
+  // You can read more about how to do this here: https://auth0.com/blog/navigating-rs256-and-jwks/
+
+  const decodedToken: Jwt = decode(token, { complete: true }) as Jwt
+
+  const { header } = decodedToken
+
+  if (!header || header.alg !== 'RS256') {
+    throw new Error('Token is not RS256 encoded')
+  }
+
+  const key = getJWKSSigningKey(header.kid)
+  const actualKey = key.publicKey || key.rsaPublicKey
+  return verify(token, actualKey, { algorithms: ['RS256'] }) as JwtPayload
+}
+
+export const handler = async (event): Promise<CustomAuthorizerResult> => {
   logger.info('Authorizing a user', event.authorizationToken)
   try {
     const jwtToken = await verifyToken(event.authorizationToken)
@@ -52,26 +131,4 @@ export const handler = async (
       }
     }
   }
-}
-
-async function verifyToken(authHeader: string): Promise<JwtPayload> {
-  const token = getToken(authHeader)
-  const jwt: Jwt = decode(token, { complete: true }) as Jwt
-
-  // TODO: Implement token verification
-  // You should implement it similarly to how it was implemented for the exercise for the lesson 5
-  // You can read more about how to do this here: https://auth0.com/blog/navigating-rs256-and-jwks/
-  return undefined
-}
-
-function getToken(authHeader: string): string {
-  if (!authHeader) throw new Error('No authentication header')
-
-  if (!authHeader.toLowerCase().startsWith('bearer '))
-    throw new Error('Invalid authentication header')
-
-  const split = authHeader.split(' ')
-  const token = split[1]
-
-  return token
 }
