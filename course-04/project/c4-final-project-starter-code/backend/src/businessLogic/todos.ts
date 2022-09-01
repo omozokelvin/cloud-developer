@@ -3,8 +3,8 @@ import { CreateTodoRequest } from '../requests/CreateTodoRequest'
 import { UpdateTodoRequest } from '../requests/UpdateTodoRequest'
 import { createLogger } from '../utils/logger'
 import * as uuid from 'uuid'
-import { AttachmentUtils } from '../helpers/attachmentUtils'
-import { TodosAccess } from '../helpers/todosAccess'
+import { AttachmentUtils } from '../dataLayer/attachmentUtils'
+import { TodosAccess } from '../dataLayer/todosAccess'
 
 // TODO: Implement businessLogic
 
