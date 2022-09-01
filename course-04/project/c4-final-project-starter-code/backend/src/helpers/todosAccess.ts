@@ -7,20 +7,20 @@ import { TodoUpdate } from '../models/TodoUpdate'
 
 const XAWS = AWSXRay.captureAWS(AWS)
 
-const createDynamoDBClient = () => {
-  if (process.env.IS_OFFLINE) {
-    console.log('Creating a local DynamoDB instance')
-
-    return new AWS.DynamoDB.DocumentClient({
-      region: 'localhost',
-      endpoint: 'http://localhost:8000'
-    })
-  }
-
-  return new AWS.DynamoDB.DocumentClient()
-}
-
 const logger = createLogger('TodosAccess')
+
+function createDynamoDBClient() {
+  // if (process.env.IS_OFFLINE) {
+  //   logger.info('Creating a local DynamoDB instance')
+
+  //   return new XAWS.DynamoDB.DocumentClient({
+  //     region: 'localhost',
+  //     endpoint: 'http://localhost:8000'
+  //   })
+  // }
+
+  return new XAWS.DynamoDB.DocumentClient()
+}
 
 // TODO: Implement the dataLayer logic
 export class TodosAccess {

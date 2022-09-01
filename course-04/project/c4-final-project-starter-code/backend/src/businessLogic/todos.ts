@@ -4,7 +4,7 @@ import { UpdateTodoRequest } from '../requests/UpdateTodoRequest'
 import { createLogger } from '../utils/logger'
 import * as uuid from 'uuid'
 import { AttachmentUtils } from '../helpers/attachmentUtils'
-import { TodosAccess } from '../helpers/todosAcess'
+import { TodosAccess } from '../helpers/todosAccess'
 
 // TODO: Implement businessLogic
 
@@ -31,6 +31,8 @@ export async function createTodo(
     ...createTodoRequest
   }
 
+  logger.info('Creating todo', newTodo)
+
   return todosAccess.createTodo(newTodo)
 }
 
@@ -46,6 +48,8 @@ export async function deleteTodo(
   todoId: string,
   userId: string
 ): Promise<void> {
+  logger.info('Deleting todo with id  => ', todoId)
+
   return todosAccess.deleteTodo(todoId, userId)
 }
 
@@ -53,11 +57,17 @@ export async function createAttachmentPresignedUrl(
   todoId: string,
   userId: string
 ) {
-  const attachmentUrl = await attachmentUtils.generateUploadUrl(todoId)
+  const signedUrl = await attachmentUtils.generateUploadUrl(todoId)
+
+  const attachmentUrl = signedUrl.split('?')[0]
+
+  logger.info('Url to view the document => ', attachmentUrl)
 
   await todosAccess.updateAttachmentUrl(todoId, userId, attachmentUrl)
 
-  return attachmentUrl
+  logger.info('Created signed attachment url', signedUrl)
+
+  return signedUrl
 }
 
 export async function getTodosForUser(userId: string): Promise<TodoItem[]> {
