@@ -27,7 +27,8 @@ export class TodosAccess {
   constructor(
     private readonly docClient: DocumentClient = createDynamoDBClient(),
     private readonly todosTable = process.env.TODOS_TABLE,
-    private readonly todosIndex = process.env.TODOS_CREATED_AT_INDEX
+    private readonly todosIndex = process.env.TODOS_CREATED_AT_INDEX,
+    private readonly bucketName = process.env.ATTACHMENT_S3_BUCKET
   ) {}
 
   async getAllTodos(userId: string): Promise<TodoItem[]> {
@@ -102,11 +103,9 @@ export class TodosAccess {
       .promise()
   }
 
-  async updateAttachmentUrl(
-    todoId: string,
-    userId: string,
-    attachmentUrl: string
-  ): Promise<void> {
+  async updateAttachmentUrl(todoId: string, userId: string): Promise<void> {
+    const attachmentUrl: string = `https://${this.bucketName}.s3.amazonaws.com/${todoId}`
+
     logger.info('Updating attachment url')
 
     await this.docClient

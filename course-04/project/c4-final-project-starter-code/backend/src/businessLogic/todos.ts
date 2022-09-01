@@ -59,11 +59,11 @@ export async function createAttachmentPresignedUrl(
 ) {
   const signedUrl = await attachmentUtils.generateUploadUrl(todoId)
 
-  const attachmentUrl = signedUrl.split('?')[0]
+  // const attachmentUrl = signedUrl.split('?')[0]
 
-  logger.info('Url to view the document => ', attachmentUrl)
+  logger.info('Url to view the document => ', signedUrl)
 
-  await todosAccess.updateAttachmentUrl(todoId, userId, attachmentUrl)
+  await todosAccess.updateAttachmentUrl(todoId, userId)
 
   logger.info('Created signed attachment url', signedUrl)
 
